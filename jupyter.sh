@@ -73,6 +73,10 @@ function limit_time
 # Search a range of ports for something not in use.
 function open_port 
 {
+    if [ -z $1 ]; then
+        echo "Usage: open_port {headnode|computenode}"
+        return
+    fi
     name_fragment="$1"
     lower=${2:-9500}
     upper=${3:-9600}
@@ -80,7 +84,7 @@ function open_port
 
     for ((port = $lower; port <= $upper; port++)); do
         if ! ss -tuln | grep -q ":$port "; then
-            echo "$port" > "$HOME/openport.$1.txt" 
+            echo "$port" > "$HOME/openport.$name_fragment.txt" 
             break
         fi
     done
@@ -90,15 +94,21 @@ function open_port
 # a script is to echo the function to a script, and then call it.
 function open_port_script
 {
+    if [ -z "$1" ]; then
+        echo "Usage: open_port_script {headnode|computenode}"
+        return
+    fi 
     type open_port | tail -n +2 > open_port.sh
-    echo "open_port" >> open_port.sh
+    echo "open_port $1" >> open_port.sh
     chmod 755 open_port.sh
-    ./open_port.sh "$1"
+    ./open_port.sh
 }
 
 # Create the job on the headnode.
 function slurm_jupyter
 {
+    # Pickup the value of partition, runtime, and gres.
+    source jparams.txt
     # find an open port on the headnode.
     #  This will create a file named $HOME/openport.headnode.txt
     open_port_script headnode
@@ -107,7 +117,12 @@ function slurm_jupyter
     # This command only creates a reservation for our session. We
     # are using this to retrieve the SLURM_JOBID and the name of
     # the node. 
-    cmd="salloc --account $me -p $partition --gres=$gres --time=$runtime:00:00 --no-shell > salloc.txt 2>&1"
+    if [ "$gres" == "NONE" ]; then
+        cmd="salloc --account $me -p "$partition" --time=$runtime:00:00 --no-shell > salloc.txt 2>&1"
+    else
+        cmd="salloc --account $me -p $partition --gpus=$gres --time=$runtime:00:00 --no-shell > salloc.txt 2>&1"
+    fi
+        
     if [ "$debug" ]; then
         echo $cmd
     fi
@@ -124,9 +139,9 @@ function slurm_jupyter
         echo "-------------------------------------"
         sleep 5
         export thisjob=$(cat salloc.txt | head -1 | awk '{print $NF}')
-        echo "your request is granted. Job ID $SLURM_JOBID"
+        echo "your request is granted. Job ID $thisjob"
 
-        thisnode=$(squeue -o %N -j $SLURM_JOBID | tail -1)
+        thisnode=$(squeue -o %N -j $thisjob | tail -1)
         echo "JOB $SLURM_JOBID will be executing on $thisnode"
     fi
 
@@ -156,38 +171,49 @@ function run_jupyter
     if [ -z $1 ]; then
         echo "Usage:"
         echo "  run_jupyter PARTITION [HOURS] [GPU]"
+        echo " "
+        echo " PARTITION -- the name of the partition where you want "
+        echo "    your job to run."
+        echo " "
+        echo " HOURS -- defaults to 1, max is 8."
+        echo " " 
+        echo " GPU -- defaults to 0, max depends on the node."
+        echo " "
         return
     fi
 
     partition="$1"  
-    runtime=${2-1} # default to one hour.
-    gres="$3"      # if not provided, then nothing. 
+    runtime=${2-1}  # default to one hour.
+    gres=${3-NONE}  # if not provided, then nothing. 
 
     # Save the arguments.    
     cat<<EOF >jparams.txt
-$partition
-$runtime
-$gres
+export partition=$partition
+export runtime=$runtime
+export gres=$gres
 EOF
 
     # copy the parameters to the headnode.
-    scp jparams.txt "$cluster:~/."
+    scp jparams.txt "$me@$cluster:~/." 2>/dev/null
     if [ ! $? ]; then
         echo "Could not copy parameters to $cluster"
         return
     fi
 
     # copy these functions to the headnode.
-    scp jupyter.sh "$cluster:~/."
+    scp jupyter.sh "$me@$cluster:~/." 2>/dev/null
     if [ ! $? ]; then
         echo "Could not copy jupyter commands to $cluster"
         return
     fi
     sleep 1
+
+    #@@@@
+    return
     
-    ssh "$cluster" "source jupyter.sh && slurm_jupyter"
+    ssh "$me@$cluster" "source jupyter.sh && slurm_jupyter"
     sleep 1
-    scp "$cluster:tunnelspec.txt" . 
+    scp "$me@$cluster:tunnelspec.txt" . 
 
     # Open the tunnel.
     source tunnelspec.txt
