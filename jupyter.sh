@@ -149,7 +149,7 @@ function slurm_jupyter
     # the script is already there because the $HOME directory is
     # NFS mounted everywhere on the system. Now, there will be a file
     # named $HOME/openport.computenode.txt
-    ssh "$me@$thisnode" "source jupyter.sh && open_port computenode"
+    ssh "$me@$thisnode" "source jupyter.sh && open_port_script computenode"
     if [ ! $? ]; then
         echo "Died trying to get computenode port."
         return
