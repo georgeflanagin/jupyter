@@ -26,9 +26,6 @@ export jupyter_exe="jupyter-notebook --no-browser"
 # The port that Jupyter is listening on for a connection.
 export jupyter_port=0
 
-# The local port that will be forwarded.
-export local_port=0
-
 # used to store the value of the port search.
 export next_open_port=0
 
@@ -76,27 +73,37 @@ function limit_time
 # Search a range of ports for something not in use.
 function open_port 
 {
-    lower=${1:-9000}
-    upper=${2:-9100}
+    name_fragment="$1"
+    lower=${2:-9500}
+    upper=${3:-9600}
+    
 
     for ((port = $lower; port <= $upper; port++)); do
         if ! ss -tuln | grep -q ":$port "; then
-            next_open_port="$port"
+            echo "$port" > "$HOME/openport.$1.txt" 
             break
         fi
     done
 }
 
+# The easiest way to have the command as both a function and
+# a script is to echo the function to a script, and then call it.
 function open_port_script
 {
     type open_port | tail -n +2 > open_port.sh
     echo "open_port" >> open_port.sh
     chmod 755 open_port.sh
+    ./open_port.sh 
 }
 
-# Write a job 
+# Create the job on the headnode.
 function slurm_jupyter
 {
+    # find an open port on the headnode.
+    #  This will create a file named $HOME/openport.headnode.txt
+    open_port_script headnode
+    export headnode_port=$(cat $HOME/openport.headnode.txt)
+
     # This command only creates a reservation for our session. We
     # are using this to retrieve the SLURM_JOBID and the name of
     # the node. 
@@ -123,11 +130,24 @@ function slurm_jupyter
         echo "JOB $SLURM_JOBID will be executing on $thisnode"
     fi
 
-    # Connect to the compute node and find an open port.
-    
+    # Connect to the compute node and find an open port. Keep in mind
+    # the script is already there because the $HOME directory is
+    # NFS mounted everywhere on the system. Now, there will be a file
+    # named $HOME/openport.computenode.txt
+    ssh "$thisnode" "./open_port.sh computenode"
+    export jupyter_port=$(cat $HOME/openport.headnode.txt)
 
-    # Now we need to star the Jupyter Notebook.
-    ssh "$thisnode" "jupyter-notebook --no-browser"
+    # Now we have all the information needed to create the tunnel.
+    # Let's make the command that creates the tunnel. We don't want
+    # to execute it /here/, so we write it to a file. 
+    cat <<EOF >"$HOME/tunnelspec.txt"
+ssh -q  -L $jupyter_port:localhost:$headnode_port spydur -t \
+    ssh -L $headnode_port:localhost:$jupyter_port computenode
+EOF
+
+
+    # Now we need to start the Jupyter Notebook.
+    ssh "$thisnode" "jupyter-notebook --no-browser -"
 
 }
 
