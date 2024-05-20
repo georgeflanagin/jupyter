@@ -21,7 +21,7 @@ export debug=
 export headnode_port=0
 
 # The exe we are running. Note that this location is on the compute node.
-export jupyter_exe="jupyter-notebook --no-browser"
+export jupyter_exe="/usr/local/sw/anaconda/anaconda3/bin/jupyter-notebook --no-browser"
 
 # The port that Jupyter is listening on for a connection.
 export jupyter_port=0
@@ -149,20 +149,19 @@ function slurm_jupyter
     # the script is already there because the $HOME directory is
     # NFS mounted everywhere on the system. Now, there will be a file
     # named $HOME/openport.computenode.txt
-    ssh "$thisnode" "./open_port.sh computenode"
-    export jupyter_port=$(cat $HOME/openport.headnode.txt)
+    ssh "$me@$thisnode" "./open_port.sh computenode"
+    export jupyter_port=$(cat $HOME/openport.computenode.txt)
 
     # Now we have all the information needed to create the tunnel.
     # Let's make the command that creates the tunnel. We don't want
     # to execute it /here/, so we write it to a file. 
     cat <<EOF >"$HOME/tunnelspec.txt"
-ssh -q  -L $jupyter_port:localhost:$headnode_port $cluster -t \
-    ssh -L $headnode_port:localhost:$jupyter_port computenode
-    export jupyter_port=$jupyter_port
+ssh -q  -L $jupyter_port:localhost:$headnode_port $me@$cluster -t ssh -L $headnode_port:localhost:$jupyter_port $me@$computenode
+export jupyter_port=$jupyter_port
 EOF
 
     # Now we need to start the Jupyter Notebook.
-    ssh "$thisnode" "nohup jupyter-notebook --no-browser --ip=0.0.0.0 --port=$jupyter_port &"
+    ssh "$me@$thisnode" "nohup $jupyter_exe --no-browser --ip=0.0.0.0 --port=$jupyter_port &"
 
 }
 
