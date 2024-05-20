@@ -141,13 +141,60 @@ function slurm_jupyter
     # Let's make the command that creates the tunnel. We don't want
     # to execute it /here/, so we write it to a file. 
     cat <<EOF >"$HOME/tunnelspec.txt"
-ssh -q  -L $jupyter_port:localhost:$headnode_port spydur -t \
+ssh -q  -L $jupyter_port:localhost:$headnode_port $cluster -t \
     ssh -L $headnode_port:localhost:$jupyter_port computenode
+    export jupyter_port=$jupyter_port
 EOF
 
-
     # Now we need to start the Jupyter Notebook.
-    ssh "$thisnode" "jupyter-notebook --no-browser -"
+    ssh "$thisnode" "nohup jupyter-notebook --no-browser --ip=0.0.0.0 --port=$jupyter_port &"
 
+}
+
+function run_jupyter
+{
+    if [ -z $1 ]; then
+        echo "Usage:"
+        echo "  run_jupyter PARTITION [HOURS] [GPU]"
+        return
+    fi
+
+    partition="$1"  
+    runtime=${2-1} # default to one hour.
+    gres="$3"      # if not provided, then nothing. 
+
+    # Save the arguments.    
+    cat<<EOF >jparams.txt
+$partition
+$runtime
+$gres
+EOF
+
+    # copy the parameters to the headnode.
+    scp jparams.txt "$cluster:~/."
+    if [ ! $? ]; then
+        echo "Could not copy parameters to $cluster"
+        return
+    fi
+
+    # copy these functions to the headnode.
+    scp jupyter.sh "$cluster:~/."
+    if [ ! $? ]; then
+        echo "Could not copy jupyter commands to $cluster"
+        return
+    fi
+    sleep 1
+    
+    ssh "$cluster" "source jupyter.sh && slurm_jupyter"
+    sleep 1
+    scp "$cluster:tunnelspec.txt" . 
+
+    # Open the tunnel.
+    source tunnelspec.txt
+
+    # Find the default browser    
+    default_browser
+
+    xdg-open http://localhost:$jupyter_port
 }
 
