@@ -93,7 +93,7 @@ function open_port_script
     type open_port | tail -n +2 > open_port.sh
     echo "open_port" >> open_port.sh
     chmod 755 open_port.sh
-    ./open_port.sh 
+    ./open_port.sh "$1"
 }
 
 # Create the job on the headnode.
