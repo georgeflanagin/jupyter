@@ -142,14 +142,19 @@ function slurm_jupyter
         echo "your request is granted. Job ID $thisjob"
 
         thisnode=$(squeue -o %N -j $thisjob | tail -1)
-        echo "JOB $SLURM_JOBID will be executing on $thisnode"
+        echo "JOB $thisjob will be executing on $thisnode"
     fi
 
     # Connect to the compute node and find an open port. Keep in mind
     # the script is already there because the $HOME directory is
     # NFS mounted everywhere on the system. Now, there will be a file
     # named $HOME/openport.computenode.txt
-    ssh "$me@$thisnode" "./open_port.sh computenode"
+    ssh "$me@$thisnode" "source jupyter.sh && open_port computenode"
+    if [ ! $? ]; then
+        echo "Died trying to get computenode port."
+        return
+    fi
+    sleep 1
     export jupyter_port=$(cat $HOME/openport.computenode.txt)
 
     # Now we have all the information needed to create the tunnel.
@@ -161,8 +166,7 @@ export jupyter_port=$jupyter_port
 EOF
 
     # Now we need to start the Jupyter Notebook.
-    ssh "$me@$thisnode" "nohup $jupyter_exe --no-browser --ip=0.0.0.0 --port=$jupyter_port &"
-
+    ssh "$me@$thisnode" "nohup $jupyter_exe --ip=0.0.0.0 --port=$jupyter_port &"
 }
 
 function run_jupyter
