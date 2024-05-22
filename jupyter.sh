@@ -23,7 +23,8 @@ export headnode_port=0
 # The exe we are running. Note that this location is on the compute node.
 export jupyter_exe="/usr/local/sw/anaconda/anaconda3/bin/jupyter-notebook --no-browser"
 
-# The port that Jupyter is listening on for a connection.
+# The port that Jupyter is listening on for a connection, and the
+# same port that the browser will listen to on localhost.
 export jupyter_port=0
 
 # used to store the value of the port search.
@@ -161,7 +162,7 @@ function slurm_jupyter
     # Let's make the command that creates the tunnel. We don't want
     # to execute it /here/, so we write it to a file. 
     cat <<EOF >"$HOME/tunnelspec.txt"
-ssh -q  -L $jupyter_port:localhost:$headnode_port $me@$cluster -t ssh -L $headnode_port:localhost:$jupyter_port $me@$computenode
+ssh -q  -L $jupyter_port:localhost:$headnode_port $me@$cluster -t ssh -L $headnode_port:localhost:$jupyter_port $me@$thisnode
 export jupyter_port=$jupyter_port
 EOF
 
@@ -176,7 +177,7 @@ function run_jupyter
         echo "  run_jupyter PARTITION [HOURS] [GPU]"
         echo " "
         echo " PARTITION -- the name of the partition where you want "
-        echo "    your job to run."
+        echo "    your job to run. This is the only required parameter."
         echo " "
         echo " HOURS -- defaults to 1, max is 8."
         echo " " 
@@ -196,33 +197,53 @@ export runtime=$runtime
 export gres=$gres
 EOF
 
-    # copy the parameters to the headnode.
+    ###
+    # copy the parameters to the headnode (which shares $HOME
+    # with all the compute nodes.
+    ###
     scp jparams.txt "$me@$cluster:~/." 2>/dev/null
     if [ ! $? ]; then
-        echo "Could not copy parameters to $cluster"
+        echo "Could not copy parameters to $me@$cluster"
         return
+    else
+        echo "Parameters copied to $me@$cluster"
     fi
 
-    # copy these functions to the headnode.
+    # copy this file to the headnode.
     scp jupyter.sh "$me@$cluster:~/." 2>/dev/null
     if [ ! $? ]; then
-        echo "Could not copy jupyter commands to $cluster"
+        echo "Could not copy jupyter.sh commands to $me@$cluster"
         return
+    else
+        echo "Copied jupyter.sh commands to $me@$cluster"
     fi
     sleep 1
 
-    #@@@@
-    return
-    
     ssh "$me@$cluster" "source jupyter.sh && slurm_jupyter"
+    if [ ! $? ]; then
+        echo "Unable to run slurm_jupyter on $me@$cluster."
+        return
+    else
+        echo "Notebook launched."
+    fi
     sleep 1
-    scp "$me@$cluster:tunnelspec.txt" . 
+
+    scp "$me@$cluster:tunnelspec.txt" "$HOME" 
+    if [ ! $? ]; then
+        echo "Unable to retrieve $me@$cluster:tunnelspec.txt"
+        return
+    else
+        echo "Retrieved tunnel spec."
+    fi
 
     # Open the tunnel.
     source tunnelspec.txt
+    if [ ! $? ]; then
+        echo "Could not create tunnel!"
+        return
+    fi 
 
-    # Find the default browser    
-    default_browser
+    # Use the default browser to open the connection.
 
     xdg-open http://localhost:$jupyter_port
 }
