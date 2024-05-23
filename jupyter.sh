@@ -1,4 +1,42 @@
 ###
+#  
+# Version 0.9 --- 23 May 2024
+# 
+# Let's find out what we are running. If this is not a bash 
+# shell, the script will not work.
+###
+if [ ! -n "$BASH_VERSION" ]; then
+    echo "This is not a bash shell, and this script will not succeed. :-("
+    exit
+fi
+
+OS=$(uname)
+case "$OS" in
+    Linux*)
+        export launcher="xdg-open"
+        ;;
+    Darwin*)    
+        export launcher="open"
+        ;;
+    CYGWIN*)    
+        export launcher="cygstart"
+        ;;
+    MINGW*)     
+        export launcher="start"
+        ;;
+    *)         
+        ;;
+esac
+
+if [ -z "$launcher" ]; then
+    echo "I cannot figure out how to start your browser. Sorry."
+    echo "I guess this script is not for you."
+    return || exit
+fi
+    
+
+
+###
 # Environment variables, with their default values.
 ###
 
@@ -108,7 +146,7 @@ function open_port_script
 # Create the job on the headnode.
 function slurm_jupyter
 {
-    # Pickup the value of partition, runtime, and gres.
+    # Pickup the value of partition, runtime, and gpu.
     source jparams.txt
     # find an open port on the headnode.
     #  This will create a file named $HOME/openport.headnode.txt
@@ -118,10 +156,10 @@ function slurm_jupyter
     # This command only creates a reservation for our session. We
     # are using this to retrieve the SLURM_JOBID and the name of
     # the node. 
-    if [ "$gres" == "NONE" ]; then
+    if [ "$gpu" == "NONE" ]; then
         cmd="salloc --account $me -p "$partition" --time=$runtime:00:00 --no-shell > salloc.txt 2>&1"
     else
-        cmd="salloc --account $me -p $partition --gpus=$gres --time=$runtime:00:00 --no-shell > salloc.txt 2>&1"
+        cmd="salloc --account $me -p $partition --gpus=$gpu --time=$runtime:00:00 --no-shell > salloc.txt 2>&1"
     fi
         
     if [ "$debug" ]; then
@@ -189,13 +227,13 @@ function run_jupyter
 
     partition="$1"  
     runtime=${2-1}  # default to one hour.
-    gres=${3-NONE}  # if not provided, then nothing. 
+    gpu=${3-NONE}  # if not provided, then nothing. 
 
     # Save the arguments.    
     cat<<EOF >jparams.txt
 export partition=$partition
 export runtime=$runtime
-export gres=$gres
+export gpu=$gpu
 EOF
 
     ###
@@ -229,7 +267,7 @@ EOF
     fi
     sleep 1
 
-    scp "$me@$cluster:tunnelspec.txt" "$HOME" 
+    scp "$me@$cluster:tunnelspec.txt" "$HOME/." 
     if [ ! $? ]; then
         echo "Unable to retrieve $me@$cluster:tunnelspec.txt"
         return
@@ -238,7 +276,7 @@ EOF
     fi
 
     # Open the tunnel.
-    source tunnelspec.txt
+    source "$HOME/tunnelspec.txt"
     if [ ! $? ]; then
         echo "Could not create tunnel!"
         return
@@ -246,6 +284,6 @@ EOF
 
     # Use the default browser to open the connection.
 
-    xdg-open http://localhost:$jupyter_port
+    eval "$launcher http://localhost:$jupyter_port"
 }
 
