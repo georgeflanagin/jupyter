@@ -34,6 +34,7 @@ if [ -z "$launcher" ]; then
     return || exit
 fi
     
+echo "To learn more about this script, type run_jupyter"
 
 
 ###
@@ -43,30 +44,29 @@ fi
 # In production, this will be the result of executing `whoami`,
 #     shown here commented out. For testing, you can set it to 
 #     any user who has an id on all the computers involved.
-# export me=$(whoami)
-export me=gflanagi
+#
+# Development was done on billieholiday, ergo ...
+#
+if [ $(hostname -s) == 'billieholiday' ]; then
+    export me=gflanagi
+else
+    export me=$(whoami)
+fi
 
-# If this is set, we use it.
+# If this is set, we use it. Not currently used, but we may 
+# need this in future scripts.
 export browser_exe="$BROWSER"
 
 # Name of the cluster
 export cluster="spydur"
 
-# Extra output if we are debugging.
-export debug=
-
-# The port on the headnode that we are passing through.
-export headnode_port=0
-
-# The exe we are running. Note that this location is on the compute node.
+# The exe we are running. Note that this location is on the compute node, which
+# has /usr/local NFS mounted.
 export jupyter_exe="/usr/local/sw/anaconda/anaconda3/bin/jupyter-notebook --no-browser"
 
 # The port that Jupyter is listening on for a connection, and the
 # same port that the browser will listen to on localhost.
 export jupyter_port=0
-
-# used to store the value of the port search.
-export next_open_port=0
 
 # Default partition. Strictly speaking, the partition
 # is not required, but it is a good idea to set this
@@ -80,13 +80,6 @@ export runtime=1
 export thisjob=
 export thisnode=
 
-
-# This variable holds the cascaded tunnel once we know what
-# the values are. It will look something like this:
-#
-# ssh -q  -L localport:localhost:headnodeport spydur -t 
-#      ssh -L headnodeport:localhost:jupyterport computenode
-export tunnel=
 
 ###
 # Shell functions.
@@ -151,7 +144,6 @@ function slurm_jupyter
     # find an open port on the headnode.
     #  This will create a file named $HOME/openport.headnode.txt
     open_port_script headnode
-    export headnode_port=$(cat $HOME/openport.headnode.txt)
 
     # This command only creates a reservation for our session. We
     # are using this to retrieve the SLURM_JOBID and the name of
