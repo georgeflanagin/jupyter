@@ -162,12 +162,13 @@ function slurm_jupyter
     # Let's make the command that creates the tunnel. We don't want
     # to execute it /here/, so we write it to a file. 
     cat <<EOF >"$HOME/tunnelspec.txt"
-ssh -q  -L $jupyter_port:localhost:$headnode_port $me@$cluster -t ssh -L $headnode_port:localhost:$jupyter_port $me@$thisnode
+ssh -q  -f -N -L $jupyter_port:$thisnode:$jupyter_port $me@$cluster
 export jupyter_port=$jupyter_port
 EOF
 
     # Now we need to start the Jupyter Notebook.
-    ssh "$me@$thisnode" "nohup $jupyter_exe --ip=0.0.0.0 --port=$jupyter_port &"
+    ssh "$me@$thisnode" "nohup $jupyter_exe --ip=0.0.0.0 --port=$jupyter_port > jupyter.log 2>&1 & disown"
+    echo "Jupyter notebook started on $thisnode:$jupyter_port"
 }
 
 function run_jupyter
