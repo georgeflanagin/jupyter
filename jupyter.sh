@@ -42,8 +42,16 @@ if [ -z "$launcher" ]; then
     return || exit
 fi
     
-echo "To learn more about this $thisscript, type run_jupyter"
-echo "This version of the script is from $thisversion"
+echo " "
+echo "    To learn more about $thisscript, type 'run_jupyter'."
+echo "     "
+echo "    This script is intended to be run from the computer where"
+echo "      you want to see the Jupyter Notebook, IOW, the computer"
+echo "      with the web browser."
+echo "     "
+echo "    This version of the script is from $thisversion"
+echo " "
+
 
 
 ########################################################################
