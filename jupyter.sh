@@ -16,11 +16,11 @@ OS=$(uname)
 case "$OS" in
     Linux*)
         export launcher="xdg-open"
-        export thisversion="stat -c %y  $thisscript"
+        export thisversion=$(stat -c %y  "$thisscript")
         ;;
     Darwin*)    
         export launcher="open"
-        export thisversion="stat -f %Sm  $thisscript"
+        export thisversion=$(stat -f %Sm  "$thisscript")
         ;;
     CYGWIN*)    
         export launcher="cygstart"
