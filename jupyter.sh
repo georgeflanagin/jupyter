@@ -337,6 +337,6 @@ EOF
         return
     fi
 
-    xdg-open "$url"
+    $launcher "$url"
 }
 
