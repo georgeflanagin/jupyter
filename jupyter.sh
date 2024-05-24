@@ -1,6 +1,10 @@
 ###
 #  
 # Version 0.9 --- 23 May 2024
+#
+# Author: George Flanagin
+# email:  gflanagin@richmond.edu
+# Org:    University of Richmond
 # 
 # Let's find out what we are running. If this is not a bash 
 # shell, the script will not work.
