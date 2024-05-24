@@ -231,6 +231,7 @@ EOF
     echo "Jupyter notebook started on $thisnode:$jupyter_port"
     echo "Waiting for five seconds for it to fully start."
     sleep 5
+    ssh "$me@$thisnode" "tail -1 jupyter.log > urlspec.txt"
 }
 
 ###
@@ -302,7 +303,7 @@ EOF
     echo "Retrieving URL to launch notebook."
     #@@@ HERE
 
-    scp "$me@$cluster:~/tunnelspec.txt" "$HOME/." 
+    scp "$me@$cluster:~/tunnelspec.txt" "$HOME" 
     if [ ! $? ]; then
         echo "Unable to retrieve tunnelspec.txt"
         return
@@ -310,7 +311,7 @@ EOF
         echo "Retrieved tunnel spec."
     fi
 
-    if [ ! -s "$HOME/tunnelspec" ]; then
+    if [ ! -s "$HOME/tunnelspec.txt" ]; then
         echo "Empty tunnelspec."
         return
     fi
@@ -320,13 +321,22 @@ EOF
     if [ ! $? ]; then
         echo "Could not create tunnel!"
         return
+    else
+        echo "Tunnel created."
     fi 
 
-    scp "$me@$cluster:~/urlspec.txt $HOME/."
-    
-    url=$(cat $HOME/urlspec.txt)
+    scp "$me@$cluster:urlspec.txt" "$HOME/."
+    if [ ! $? ]; then
+        echo "Could not retrieve URL for Jupyter notebook."
+        return
+    fi
+        
+    url=$(awk '{print $NF}' "$HOME/urlspec.txt")
+    if [ -z "$url" ]; then
+        echo "Empty URL spec. Cannot continue."
+        return
+    fi
 
-    # Use the default browser to open the connection.
-    eval "$launcher $url"
+    xdg-open "$url"
 }
 
