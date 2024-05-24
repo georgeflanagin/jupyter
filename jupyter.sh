@@ -10,21 +10,29 @@ if [ ! -n "$BASH_VERSION" ]; then
     exit
 fi
 
+export thisscript="${BASH_SOURCE[0]}"
+
 OS=$(uname)
 case "$OS" in
     Linux*)
         export launcher="xdg-open"
+        export thisversion="stat -c %y  $thisscript"
         ;;
     Darwin*)    
         export launcher="open"
+        export thisversion="stat -f %Sm  $thisscript"
         ;;
     CYGWIN*)    
         export launcher="cygstart"
+        export thisversion="unknown date"
         ;;
     MINGW*)     
         export launcher="start"
+        export thisversion="unknown date"
         ;;
     *)         
+        export launcher=""
+        export thisversion="unknown date"
         ;;
 esac
 
@@ -34,56 +42,70 @@ if [ -z "$launcher" ]; then
     return || exit
 fi
     
-echo "To learn more about this script, type run_jupyter"
+echo "To learn more about this $thisscript, type run_jupyter"
+echo "This version of the script is from $thisversion"
 
 
-###
+########################################################################
 # Environment variables, with their default values.
-###
+########################################################################
 
+###
 # In production, this will be the result of executing `whoami`,
 #     shown here commented out. For testing, you can set it to 
 #     any user who has an id on all the computers involved.
 #
 # Development was done on billieholiday, ergo ...
 #
+###
 if [ $(hostname -s) == 'billieholiday' ]; then
     export me=gflanagi
 else
     export me=$(whoami)
 fi
 
+###
 # If this is set, we use it. Not currently used, but we may 
 # need this in future scripts.
+###
 export browser_exe="$BROWSER"
-
-# Name of the cluster
 export cluster="spydur"
+export created_files="tunnelspec.txt urlspec.txt salloc.txt jparams.txt"
 
+###
 # The exe we are running. Note that this location is on the compute node, which
 # has /usr/local NFS mounted.
+###
 export jupyter_exe="/usr/local/sw/anaconda/anaconda3/bin/jupyter-notebook --no-browser"
 
+###
 # The port that Jupyter is listening on for a connection, and the
 # same port that the browser will listen to on localhost.
+###
 export jupyter_port=0
 
+###
 # Default partition. Strictly speaking, the partition
 # is not required, but it is a good idea to set this
 # to the default on your cluster.
+###
 export partition=basic
 
+###
 # How long is the Jupyter session in hours?
+###
 export runtime=1
 
-# These variables will be assigned by the headnode.
+###
+# These variables will be assigned by SLURM
+###
 export thisjob=
 export thisnode=
 
 
-###
+########################################################################
 # Shell functions.
-###
+########################################################################
 
 # Find the default browser on the user's computer
 function default_browser
@@ -199,8 +221,14 @@ EOF
     # Now we need to start the Jupyter Notebook.
     ssh "$me@$thisnode" "nohup $jupyter_exe --ip=0.0.0.0 --port=$jupyter_port > jupyter.log 2>&1 & disown"
     echo "Jupyter notebook started on $thisnode:$jupyter_port"
+    echo "Waiting for five seconds for it to fully start."
+    sleep 5
 }
 
+###
+# This is the "entry point" that launches Jupyter. It should be run
+# from the workstation.
+###
 function run_jupyter
 {
     if [ -z $1 ]; then
@@ -216,6 +244,12 @@ function run_jupyter
         echo " "
         return
     fi
+
+    # Remove any old files. If we don't do this, in the case of an 
+    # error, this script might load a file left behind by a previous
+    # notebook.
+
+    ssh "$me@$cluster" "rm -fv $created_files"
 
     partition="$1"  
     runtime=${2-1}  # default to one hour.
@@ -257,14 +291,20 @@ EOF
     else
         echo "Notebook launched."
     fi
-    sleep 1
+    echo "Retrieving URL to launch notebook."
+    #@@@ HERE
 
-    scp "$me@$cluster:tunnelspec.txt" "$HOME/." 
+    scp "$me@$cluster:~/tunnelspec.txt" "$HOME/." 
     if [ ! $? ]; then
-        echo "Unable to retrieve $me@$cluster:tunnelspec.txt"
+        echo "Unable to retrieve tunnelspec.txt"
         return
     else
         echo "Retrieved tunnel spec."
+    fi
+
+    if [ ! -s "$HOME/tunnelspec" ]; then
+        echo "Empty tunnelspec."
+        return
     fi
 
     # Open the tunnel.
@@ -274,8 +314,11 @@ EOF
         return
     fi 
 
-    # Use the default browser to open the connection.
+    scp "$me@$cluster:~/urlspec.txt $HOME/."
+    
+    url=$(cat $HOME/urlspec.txt)
 
-    eval "$launcher http://localhost:$jupyter_port"
+    # Use the default browser to open the connection.
+    eval "$launcher $url"
 }
 
