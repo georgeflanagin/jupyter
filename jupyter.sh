@@ -11,7 +11,7 @@
 ###
 if [ ! -n "$BASH_VERSION" ]; then
     echo "This is not a bash shell, and this script will not succeed. :-("
-    exit
+    return || exit
 fi
 
 export thisscript="${BASH_SOURCE[0]}"
@@ -214,7 +214,7 @@ function slurm_jupyter
     # the script is already there because the $HOME directory is
     # NFS mounted everywhere on the system. Now, there will be a file
     # named $HOME/openport.computenode.txt
-    ssh "$me@$thisnode" "source jupyter.sh && open_port_script computenode"
+    ssh "$me@$thisnode" "source $thisscript && open_port_script computenode"
     if [ ! $? ]; then
         echo "Died trying to get computenode port."
         return
@@ -288,12 +288,12 @@ EOF
     fi
 
     # copy this file to the headnode.
-    scp jupyter.sh "$me@$cluster:~/." 2>/dev/null
+    scp "$thisscript" "$me@$cluster:~/." 2>/dev/null
     if [ ! $? ]; then
-        echo "Could not copy jupyter.sh commands to $me@$cluster"
+        echo "Could not copy $thisscript commands to $me@$cluster"
         return
     else
-        echo "Copied jupyter.sh commands to $me@$cluster"
+        echo "Copied $thisscript commands to $me@$cluster"
     fi
     sleep 1
 
