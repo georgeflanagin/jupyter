@@ -11,7 +11,7 @@
 ###
 if [ ! -n "$BASH_VERSION" ]; then
     echo "This is not a bash shell, and this script will not succeed. :-("
-    return || exit
+    return 
 fi
 
 export thisscript="${BASH_SOURCE[0]}"
@@ -43,7 +43,7 @@ esac
 if [ -z "$launcher" ]; then
     echo "I cannot figure out how to start your browser. Sorry."
     echo "I guess this script is not for you."
-    return || exit
+    return 
 fi
     
 echo " "
@@ -67,15 +67,6 @@ echo " "
 #     shown here commented out. For testing, you can set it to 
 #     any user who has an id on all the computers involved.
 #
-# Development was done on billieholiday, ergo ...
-#
-###
-if [ $(hostname -s) == 'billieholiday' ]; then
-    export me=gflanagi
-else
-    export me=$(whoami)
-fi
-
 ###
 # If this is set, we use it. Not currently used, but we may 
 # need this in future scripts.
@@ -246,10 +237,14 @@ function run_jupyter
 {
     if [ -z $1 ]; then
         echo "Usage:"
-        echo "  run_jupyter PARTITION [HOURS] [GPU]"
+        echo "  run_jupyter PARTITION [USERNAME] [HOURS] [GPU]"
         echo " "
         echo " PARTITION -- the name of the partition where you want "
         echo "    your job to run. This is the only required parameter."
+        echo " "
+        echo " USERNAME -- the name of the user on the *cluster*. If"
+        echo "    you have the same name on this workstation/Mac/PC,"
+        echo "    you need not provide this name."
         echo " "
         echo " HOURS -- defaults to 1, max is 8."
         echo " " 
@@ -265,12 +260,19 @@ function run_jupyter
     ssh "$me@$cluster" "rm -fv $created_files"
 
     partition="$1"  
-    runtime=${2-1}  # default to one hour.
-    gpu=${3-NONE}  # if not provided, then nothing. 
+    if [ -z "$2" ]; then
+        export me="$(whoami)"
+    else
+        export me="$2"
+    fi
+
+    runtime=${3-1}  # default to one hour.
+    gpu=${4-NONE}  # if not provided, then nothing. 
 
     # Save the arguments.    
     cat<<EOF >jparams.txt
 export partition=$partition
+export me=$me
 export runtime=$runtime
 export gpu=$gpu
 EOF
