@@ -79,7 +79,7 @@ export created_files="tunnelspec.txt urlspec.txt salloc.txt jparams.txt"
 # The exe we are running. Note that this location is on the compute node, which
 # has /usr/local NFS mounted.
 ###
-export jupyter_exe="/usr/local/sw/anaconda/anaconda3/bin/jupyter-notebook --no-browser"
+export jupyter_exe="/usr/local/sw/anaconda/anaconda3/bin/jupyter-lab --no-browser"
 
 ###
 # The port that Jupyter is listening on for a connection, and the
@@ -126,6 +126,7 @@ function limit_time
         runtime=8
     fi
 }
+
 
 # Search a range of ports for something not in use.
 function open_port 
@@ -174,14 +175,11 @@ function slurm_jupyter
     # are using this to retrieve the SLURM_JOBID and the name of
     # the node. 
     if [ "$gpu" == "NONE" ]; then
-        cmd="salloc --account $me -p "$partition" --time=$runtime:00:00 --no-shell > salloc.txt 2>&1"
+        export cmd="salloc --account $me -p "$partition" --time=$runtime:00:00 --no-shell > salloc.txt 2>&1"
     else
-        cmd="salloc --account $me -p $partition --gpus=$gpu --time=$runtime:00:00 --no-shell > salloc.txt 2>&1"
+        export cmd="salloc --account $me -p $partition --gpus=$gpu --time=$runtime:00:00 --no-shell > salloc.txt 2>&1"
     fi
         
-    if [ "$debug" ]; then
-        echo $cmd
-    fi
     eval "$cmd"
 
     # If we don't have a compute node, we are sunk.
@@ -229,6 +227,25 @@ EOF
     ssh "$me@$thisnode" "tail -1 jupyter.log > urlspec.txt"
 }
 
+
+function valid_partition
+{
+    if [ -z "$1" ]; then
+        echo "no parition name given" 
+        false
+        return
+    fi
+
+    export partitions=$(ssh "$me@$cluster" "sinfo -o '%P'")
+    export partitions=$(echo "$partitions" | tr '\n' ' ')
+
+    if echo "$partitions" | grep -qw "$1" ; then
+        true
+    else
+        false
+    fi
+}
+
 ###
 # This is the "entry point" that launches Jupyter. It should be run
 # from the workstation.
@@ -257,9 +274,15 @@ function run_jupyter
     # error, this script might load a file left behind by a previous
     # notebook.
 
-    ssh "$me@$cluster" "rm -fv $created_files"
 
     partition="$1"  
+    if valid_partition "$partition" ; then
+        echo "Using partition $1"
+    else
+        echo "Partition $1 not found. Cannot continue."
+        return
+    fi 
+
     if [ -z "$2" ]; then
         export me="$(whoami)"
     else
@@ -276,6 +299,7 @@ export me=$me
 export runtime=$runtime
 export gpu=$gpu
 EOF
+    ssh "$me@$cluster" "rm -fv $created_files"
 
     ###
     # copy the parameters to the headnode (which shares $HOME
