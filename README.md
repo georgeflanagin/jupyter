@@ -4,7 +4,7 @@ Most of the necessary comments are in the `jupyter.sh` file. A word about
 what problem we are trying to solve is called for. 
 
 In a cluster computer, you want to run Jupyter on a compute node while
-using one's own Linux workstation for the browser and the user interface.
+using one's own Linux workstation (or Mac) for the browser and the user interface.
 Doing so is not technically difficult, but for people who are unfamiliar
 with ssh and tunneling and even the internal configuration of the cluster,
 it is a mistake prone operation. 
@@ -32,13 +32,33 @@ shows that it is more problematic to distribute multiple files than just one.
 
 ```
 source jupyter.sh
-run_jupyter PARTITION [ HOURS ] [ NUMGPUS ]
+run_jupyter PARTITION [USER] [ HOURS ] [ NUMGPUS ]
 ```
 
-`PARTITION` : Name of the group of nodes where you want to run the Jupyter
-notebook. It defaults to the default partition on the cluster, and all SLURM
-clusters have a default partition.
+### Parameters
 
-`HOURS` : Number of hours to initially allocate. The default is `1`.
+#### PARTITION
 
-`NUMGPUS` : The number of GPUs you plan to use. The default is none.
+This is the only required parameter. The `run_jupyter` command checks that the partition
+name is valid. Case is relevant, so `basic` is correct, but `BASIC` will give you an error.
+
+#### USER
+
+This is generally your University of Richmond `netid`. If you are logged in as "yourself" 
+on your workstation, then you probably can omit this parameter. If you are logged in
+as a user that doesn't exist on the cluster (example: you are on a personal computer
+and VPN-ed into UR's network), then you will need provide your netid. 
+
+#### HOURS
+
+This value defaults to `1`. If you need more than `1`, provide the number. Note that
+GPUs are not available on all partitions/nodes.
+
+#### NUMGPUS
+
+This value defaults to `NONE`. Generally, one is enough.
+
+### Examples
+
+`run_jupyter medium` Run a notebook as your currently logged in user for one hour, no GPUs.
+`run_jupyter basic xx8ur` Run a notebook as `xx8ur` on the basic partition for one hour.
