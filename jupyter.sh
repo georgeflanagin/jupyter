@@ -79,7 +79,7 @@ export created_files="tunnelspec.txt urlspec.txt salloc.txt jparams.txt"
 # The exe we are running. Note that this location is on the compute node, which
 # has /usr/local NFS mounted.
 ###
-export jupyter_exe="/usr/local/sw/anaconda/anaconda3/bin/jupyter-lab --no-browser"
+export jupyter_exe="/usr/local/sw/anaconda/anaconda3/bin/jupyter-lab --NotebookApp.open_browser=False"
 
 ###
 # The port that Jupyter is listening on for a connection, and the
