@@ -76,5 +76,6 @@ This value defaults to `NONE`. Generally, one is enough.
 
 ### Logging out
 
-Choose "Shut Down" rather than "Logout." 
+Choose "Shut Down" rather than "Logout" on the File menu. Why? Shutdown will free the CPU and memory
+you were using *immediately* rather than waiting for the end of the time you requested. 
 
