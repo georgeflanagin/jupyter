@@ -239,7 +239,7 @@ function valid_partition
     export partitions=$(ssh "$me@$cluster" "sinfo -o '%P'")
     export partitions=$(echo "$partitions" | tr '\n' ' ')
 
-    if echo "$partitions" | grep -qw "$1" ; then
+    if echo "$partitions" | grep -q "$1" ; then
         true
     else
         false
