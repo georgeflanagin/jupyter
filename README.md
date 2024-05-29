@@ -61,4 +61,7 @@ This value defaults to `NONE`. Generally, one is enough.
 ### Examples
 
 `run_jupyter medium` Run a notebook as your currently logged in user for one hour, no GPUs.
+
 `run_jupyter basic xx8ur` Run a notebook as `xx8ur` on the basic partition for one hour.
+
+`run_jupyter sci gflanagi 2 1` Run a notebook as `gflanagi` on the sci partition for two hours, and use one GPU.
