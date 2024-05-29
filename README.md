@@ -24,9 +24,17 @@ shows that it is more problematic to distribute multiple files than just one.
   workstation (`localhost`). The UIDs need not match, and no centralized authentication
   is used.
 - The script assumes ssh keys are available for the connections; the operation 
-  should be fully automatic, requiring no user interaction. 
+  should be fully automatic, requiring no user interaction. If you do not have
+  keys installed on the cluster, then you will be interrupted by prompts for
+  passwords as the notebook starts. 
 - The default browser is used. If you set the `BROWSER` environment variable on
   your workstation, another browser can be used.
+
+## Known performance limitations
+
+The notebook may not launch on busy nodes. This problem is caused by nodes being
+"over subscribed," meaning that five seconds is not long enough to launch the
+browser following the allocation of your job. The solution is to try a different partition. 
 
 ## How to use it
 
@@ -65,3 +73,8 @@ This value defaults to `NONE`. Generally, one is enough.
 `run_jupyter basic xx8ur` Run a notebook as `xx8ur` on the basic partition for one hour.
 
 `run_jupyter sci gflanagi 2 1` Run a notebook as `gflanagi` on the sci partition for two hours, and use one GPU.
+
+### Logging out
+
+Choose "Shut Down" rather than "Logout." 
+
