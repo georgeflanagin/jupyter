@@ -87,6 +87,8 @@ export jupyter_exe="/usr/local/sw/anaconda/anaconda3/bin/jupyter-lab --NotebookA
 ###
 export jupyter_port=0
 
+export me=$(whoami)
+
 ###
 # Default partition. Strictly speaking, the partition
 # is not required, but it is a good idea to set this
