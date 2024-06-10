@@ -226,7 +226,7 @@ EOF
     echo "Jupyter notebook started on $thisnode:$jupyter_port"
     echo "Waiting for five seconds for it to fully start."
     sleep 5
-    ssh "$me@$thisnode" "tail -1 jupyter.log > urlspec.txt"
+    ssh "$me@$thisnode" 'tac jupyter.log | grep -a -m 1 "127\.0\.0\.1" > urlspec.txt'
 }
 
 
