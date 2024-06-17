@@ -87,8 +87,6 @@ export jupyter_exe="/usr/local/sw/anaconda/anaconda3/bin/jupyter-lab --NotebookA
 ###
 export jupyter_port=0
 
-export me=$(whoami)
-
 ###
 # Default partition. Strictly speaking, the partition
 # is not required, but it is a good idea to set this
@@ -254,16 +252,14 @@ function valid_partition
 ###
 function run_jupyter
 {
-    if [ -z $1 ]; then
+    if [ -z $2 ]; then
         echo "Usage:"
-        echo "  run_jupyter PARTITION [USERNAME] [HOURS] [GPU]"
+        echo "  run_jupyter PARTITION USERNAME [HOURS] [GPU]"
         echo " "
         echo " PARTITION -- the name of the partition where you want "
         echo "    your job to run. This is the only required parameter."
         echo " "
-        echo " USERNAME -- the name of the user on the *cluster*. If"
-        echo "    you have the same name on this workstation/Mac/PC,"
-        echo "    you need not provide this name."
+        echo " USERNAME -- the name of the user on the *cluster*. 
         echo " "
         echo " HOURS -- defaults to 1, max is 8."
         echo " " 
@@ -272,24 +268,16 @@ function run_jupyter
         return
     fi
 
-    # Remove any old files. If we don't do this, in the case of an 
-    # error, this script might load a file left behind by a previous
-    # notebook.
-
-
+    # Need to set $me first so that valid_partition can check it.
+    export me="$2"
     partition="$1"  
     if valid_partition "$partition" ; then
-        echo "Using partition $1"
+        echo "Using partition $partition"
     else
-        echo "Partition $1 not found. Cannot continue."
+        echo "Partition $partition not found. Cannot continue."
         return
     fi 
 
-    if [ -z "$2" ]; then
-        export me="$(whoami)"
-    else
-        export me="$2"
-    fi
 
     runtime=${3-1}  # default to one hour.
     gpu=${4-NONE}  # if not provided, then nothing. 
@@ -301,6 +289,12 @@ export me=$me
 export runtime=$runtime
 export gpu=$gpu
 EOF
+    ###
+    # Remove any old files. If we don't do this, in the case of an 
+    # error, this script might load a file left behind by a previous
+    # notebook.
+    ###
+
     ssh "$me@$cluster" "rm -fv $created_files"
 
     ###
