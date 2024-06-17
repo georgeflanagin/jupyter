@@ -259,7 +259,7 @@ function run_jupyter
         echo " PARTITION -- the name of the partition where you want "
         echo "    your job to run. This is the only required parameter."
         echo " "
-        echo " USERNAME -- the name of the user on the *cluster*. 
+        echo " USERNAME -- the name of the user on the *cluster*. "
         echo " "
         echo " HOURS -- defaults to 1, max is 8."
         echo " " 
