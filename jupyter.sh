@@ -79,7 +79,7 @@ export created_files="tunnelspec.txt urlspec.txt salloc.txt jparams.txt"
 # The exe we are running. Note that this location is on the compute node, which
 # has /usr/local NFS mounted.
 ###
-export jupyter_exe="/usr/local/sw/anaconda/anaconda3/bin/jupyter-lab --NotebookApp.open_browser=False"
+export jupyter_exe="/usr/local/sw/anaconda/anaconda3/bin/jupyter notebook --NotebookApp.open_browser=False"
 
 ###
 # The port that Jupyter is listening on for a connection, and the
@@ -220,7 +220,7 @@ export jupyter_port=$jupyter_port
 EOF
 
     # Now we need to start the Jupyter Notebook.
-    ssh "$me@$thisnode" "nohup $jupyter_exe --ip=0.0.0.0 --port=$jupyter_port > jupyter.log 2>&1 & disown"
+    ssh "$me@$thisnode" "source /usr/local/sw/anaconda/anaconda3/bin/activate cleancondajupyter ; nohup $jupyter_exe --ip=0.0.0.0 --port=$jupyter_port > jupyter.log 2>&1 & disown"
     echo "Jupyter notebook started on $thisnode:$jupyter_port"
     echo "Waiting for five seconds for it to fully start."
     sleep 5
