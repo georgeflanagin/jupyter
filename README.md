@@ -40,7 +40,7 @@ browser following the allocation of your job. The solution is to try a different
 
 ```
 source jupyter.sh
-run_jupyter PARTITION [USER] [ HOURS ] [ NUMGPUS ]
+run_jupyter PARTITION USER [ HOURS ] [ NUMGPUS ]
 ```
 
 ### Parameters
@@ -52,10 +52,8 @@ name is valid. Case is relevant, so `basic` is correct, but `BASIC` will give yo
 
 #### USER
 
-This is generally your University of Richmond `netid`. If you are logged in as "yourself" 
-on your workstation, then you probably can omit this parameter. If you are logged in
-as a user that doesn't exist on the cluster (example: you are on a personal computer
-and VPN-ed into UR's network), then you will need provide your netid. 
+This is generally your University of Richmond `netid`. Note that your username on your 
+Mac or Linux workstation is irrelevant. 
 
 #### HOURS
 
@@ -68,7 +66,7 @@ This value defaults to `NONE`. Generally, one is enough.
 
 ### Examples
 
-`run_jupyter medium` Run a notebook as your currently logged in user for one hour, no GPUs.
+`run_jupyter medium gflanagi` Run a notebook as gflanagi for one hour on the medium partition, no GPUs.
 
 `run_jupyter basic xx8ur` Run a notebook as `xx8ur` on the basic partition for one hour.
 
