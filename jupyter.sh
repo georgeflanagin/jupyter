@@ -175,11 +175,12 @@ function slurm_jupyter
     # are using this to retrieve the SLURM_JOBID and the name of
     # the node. 
     if [ "$gpu" == "NONE" ]; then
-        export cmd="salloc --account $me -p $partition -c=$cores --time=$runtime:00:00 --no-shell > salloc.txt 2>&1"
+        export cmd="salloc --account $me -p $partition --cpus-per-task=$cores --time=$runtime:00:00 --no-shell > salloc.txt 2>&1"
     else
-        export cmd="salloc --account $me -p $partition -c=$cores --gpus=$gpu --time=$runtime:00:00 --no-shell > salloc.txt 2>&1"
+        export cmd="salloc --account $me -p $partition --gpus=$gpu --cpus-per-task=$cores --time=$runtime:00:00 --no-shell > salloc.txt 2>&1"
     fi
-        
+
+    export SRUN_CPUS_PER_TASK=$cores
     eval "$cmd"
 
     # If we don't have a compute node, we are sunk.
@@ -225,7 +226,7 @@ EOF
 
     # Now we need to start the Jupyter Notebook.
     echo "just before the start of the notebook."
-    ssh "$me@$thisnode" "source /usr/local/sw/anaconda/anaconda3/bin/activate cleancondajupyter ; nohup $jupyter_exe --ip=0.0.0.0 --port=$jupyter_port > jupyter.log 2>&1 & disown"
+    ssh "$me@$thisnode" "source /usr/local/sw/anaconda/anaconda3/bin/activate cleancondajupyter ; nohup srun -c $cores $jupyter_exe --ip=0.0.0.0 --port=$jupyter_port > jupyter.log 2>&1 & disown"
     echo "Jupyter notebook started on $thisnode:$jupyter_port"
     echo "Waiting for five seconds for it to fully start."
     sleep 5
