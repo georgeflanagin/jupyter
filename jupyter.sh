@@ -79,7 +79,7 @@ export created_files="tunnelspec.txt urlspec.txt salloc.txt jparams.txt"
 # The exe we are running. Note that this location is on the compute node, which
 # has /usr/local NFS mounted.
 ###
-export jupyter_exe="/usr/local/sw/anaconda/anaconda3/bin/jupyter-lab --NotebookApp.open_browser=False"
+export jupyter_exe="/usr/local/sw/anaconda/anaconda3/bin/jupyter notebook --NotebookApp.open_browser=False"
 
 ###
 # The port that Jupyter is listening on for a connection, and the
@@ -175,9 +175,9 @@ function slurm_jupyter
     # are using this to retrieve the SLURM_JOBID and the name of
     # the node. 
     if [ "$gpu" == "NONE" ]; then
-        export cmd="salloc --account $me -p "$partition" --time=$runtime:00:00 --no-shell > salloc.txt 2>&1"
+        export cmd="salloc --account $me -p $partition -c=$cores --time=$runtime:00:00 --no-shell > salloc.txt 2>&1"
     else
-        export cmd="salloc --account $me -p $partition --gpus=$gpu --time=$runtime:00:00 --no-shell > salloc.txt 2>&1"
+        export cmd="salloc --account $me -p $partition -c=$cores --gpus=$gpu --time=$runtime:00:00 --no-shell > salloc.txt 2>&1"
     fi
         
     eval "$cmd"
@@ -193,6 +193,10 @@ function slurm_jupyter
         echo "-------------------------------------"
         sleep 5
         export thisjob=$(cat salloc.txt | head -1 | awk '{print $NF}')
+        if [ -z $thisjob ]; then
+            echo "Job not created!"
+            return
+        fi
         echo "your request is granted. Job ID $thisjob"
 
         thisnode=$(squeue -o %N -j $thisjob | tail -1)
@@ -220,7 +224,8 @@ export jupyter_port=$jupyter_port
 EOF
 
     # Now we need to start the Jupyter Notebook.
-    ssh "$me@$thisnode" "nohup $jupyter_exe --ip=0.0.0.0 --port=$jupyter_port > jupyter.log 2>&1 & disown"
+    echo "just before the start of the notebook."
+    ssh "$me@$thisnode" "source /usr/local/sw/anaconda/anaconda3/bin/activate cleancondajupyter ; nohup $jupyter_exe --ip=0.0.0.0 --port=$jupyter_port > jupyter.log 2>&1 & disown"
     echo "Jupyter notebook started on $thisnode:$jupyter_port"
     echo "Waiting for five seconds for it to fully start."
     sleep 5
@@ -254,7 +259,7 @@ function run_jupyter
 {
     if [ -z $2 ]; then
         echo "Usage:"
-        echo "  run_jupyter PARTITION USERNAME [HOURS] [GPU]"
+        echo "  run_jupyter PARTITION USERNAME [HOURS] [CORES] [GPU]"
         echo " "
         echo " PARTITION -- the name of the partition where you want "
         echo "    your job to run. This is the only required parameter."
@@ -263,6 +268,8 @@ function run_jupyter
         echo " "
         echo " HOURS -- defaults to 1, max is 8."
         echo " " 
+        echo " CORES -- defaults to 1, max is 4"
+        echo " "
         echo " GPU -- defaults to 0, max depends on the node."
         echo " "
         return
@@ -280,15 +287,18 @@ function run_jupyter
 
 
     runtime=${3-1}  # default to one hour.
-    gpu=${4-NONE}  # if not provided, then nothing. 
+    cores=${4-1}
+    gpu=${5-NONE}  # if not provided, then nothing. 
 
     # Save the arguments.    
     cat<<EOF >jparams.txt
 export partition=$partition
 export me=$me
 export runtime=$runtime
+export cores=$cores
 export gpu=$gpu
 EOF
+
     ###
     # Remove any old files. If we don't do this, in the case of an 
     # error, this script might load a file left behind by a previous
